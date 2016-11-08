@@ -7,14 +7,11 @@ import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 
 public class SocketIOManager {
+	Socket socket;
 	
-	public SocketIOManager(){
-		
-	}
-	
-	public void connect(String url){
+	public SocketIOManager(String uri){
 		try {
-			final Socket socket = IO.socket(url);
+			socket = IO.socket(uri);
 			setupListeners(socket);
 			socket.connect();
 		} catch (URISyntaxException e) {
@@ -89,7 +86,13 @@ public class SocketIOManager {
 		});
 	}
 	
-	public void send(String channel, String msg){
+	public void send(String event, String msg){
+		socket.emit(event, msg);
+	}
+	
+	public static void main(String[] args){
+		SocketIOManager mgr = new SocketIOManager("http://143.248.53.143:25000/request");
 		
+		mgr.send("request", "8888888888888888");
 	}
 }
