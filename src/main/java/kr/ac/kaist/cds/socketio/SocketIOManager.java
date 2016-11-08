@@ -2,6 +2,16 @@ package kr.ac.kaist.cds.socketio;
 
 import java.net.URISyntaxException;
 
+import kr.ac.kaist.cds.Configuration;
+import kr.ac.kaist.cds.net.NDServer;
+import kr.ac.kaist.cds.net.NetworkContextManager;
+import kr.ac.kaist.cds.net.NetworkInterface;
+import kr.ac.kaist.cds.net.NetworkInterfaceManager;
+import kr.ac.kaist.cds.qos.QoSInterpreter;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -32,11 +42,8 @@ public class SocketIOManager {
 			
 			@Override
 			public void call(Object... args) {
-				System.out.println("## call!!");
-				socket.emit("foo", "hi");
-				socket.emit("my event", "hihihi (my event data)");
-			   // socket.disconnect();
-				
+				System.out.println("[SocketIO] connecting...");
+				//socket.emit("my event", "hihihi (my event data)");
 			}
 		});
 		
@@ -53,13 +60,13 @@ public class SocketIOManager {
 		});
 		
 		/*
-		 * REQUEST REPLY
+		 * MAtchingRequest from Resolver (SNU)
 		 */
-		socket.on("request_reply", new Emitter.Listener() {
+		socket.on("MatchingRequest", new Emitter.Listener() {
 
 			@Override
 			public void call(Object... args) {
-				System.out.println("[SocketIOMgr] reply type");
+				System.out.println("[SocketIOMgr] matching request received");
 				for(int i=0; i<args.length; i++){
 					System.out.println("  args[" + i +"]= " +args[i]);
 				}
@@ -90,9 +97,50 @@ public class SocketIOManager {
 		socket.emit(event, msg);
 	}
 	
+	public void join(JSONObject joinJson){
+		send("Join", joinJson.toString());
+	}
+	
+	public void update(JSONObject upJson){
+		send("Update", upJson.toString());
+	}
+	
+	public void request(JSONObject reqJson){
+		send("Request", reqJson.toString());
+	}
+	
+	/**
+	 * Testcode for SocketIO
+	 * @param args
+	 */
 	public static void main(String[] args){
-		SocketIOManager mgr = new SocketIOManager("http://143.248.53.143:25000/request");
+		String serverAddr = Configuration.getInstance().get("SocketIOAddr");
+		SocketIOManager mgr = new SocketIOManager(serverAddr);
 		
-		mgr.send("request", "8888888888888888");
+		// neighbor discovery server start
+		NDServer server = NDServer.getInstance();
+		Thread ndServerThread = new Thread(server);
+		ndServerThread.start();
+		
+		// uniqueCodes
+		JSONObject joinJSONObj = new JSONObject();
+		NetworkInterfaceManager nim = NetworkInterfaceManager.getInstance();
+		joinJSONObj.put("uniqueCodes", nim.getUniqueCodes());
+		
+		// relay
+		if(Configuration.getInstance().get("UseRelay").equals("no")){
+			joinJSONObj.put("relay", "none");
+		}
+		
+		// neighbors
+		NetworkContextManager ncm = new NetworkContextManager();
+		joinJSONObj.put("neighbors", ncm.discoverNeighbors());
+		
+		// debug
+		System.out.println(joinJSONObj.toString());
+		
+		// join the Resolver network.
+		mgr.join(joinJSONObj);
+		
 	}
 }

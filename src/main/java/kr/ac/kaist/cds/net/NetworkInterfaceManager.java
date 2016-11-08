@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
+import org.json.JSONArray;
+
 import kr.ac.kaist.cds.debug.Debug;
 import kr.ac.kaist.cds.debug.DebugType;
 import kr.ac.kaist.cds.util.LinuxUtil;
@@ -21,6 +23,15 @@ public class NetworkInterfaceManager {
 		addInterfacesFromSysClassNet(this.interfaces);
 		updateDetailsFromIfconfig(this.interfaces.keySet().toArray(new String[0]));
 		addBluetoothInterfaces(this.interfaces);
+	}
+	
+	public JSONArray getUniqueCodes(){
+		JSONArray ucJSONArr = new JSONArray();
+		for(NetworkInterface ni : this.interfaces.values()){
+			ucJSONArr.put(ni.toJSONObject());
+		}
+		
+		return ucJSONArr;
 	}
 	
 	public NetworkInterface getNetworkInterface(String ifName){
